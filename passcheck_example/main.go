@@ -33,6 +33,32 @@ func joinAll(tFields []string) string {
 	return sb.String()
 }
 
+func beenPwned(hashedPassword, haveIBeenPwnedResp string) (bool, error) {
+	// Create a scanner from the response.
+	scanner := bufio.NewScanner(strings.NewReader(haveIBeenPwnedResp))
+
+	// Scan the response.
+	for scanner.Scan() {
+		currentHash := scanner.Text()
+		// the api returns the hash - (first five chars)
+		// since a standard hash is 40 chars this means
+		// that the hash is the fist 35 characters.
+		currentHash = currentHash[:35]
+
+		// Check to see if the first 10 chars are the same
+		if hashedPassword[len(hashedPassword)-10:] == currentHash[len(currentHash)-10:] {
+			return true, nil
+		}
+	}
+
+	// Check for errors
+	if err := scanner.Err(); err != nil {
+		return false, fmt.Errorf("could not scan text: %v", err)
+	}
+
+	return false, nil
+}
+
 func insertMiddle(s, set string) string {
 	// Chose a random rune from the set.
 	char := set[rand.Intn(len(s))]
@@ -96,5 +122,16 @@ func main() {
 		log.Fatalln(err)
 	}
 
-	fmt.Println(resp)
+	pwned, err := beenPwned(hashedInput, resp)
+
+	if err != nil {
+		log.Fatalln(err)
+	}
+
+	if pwned {
+		fmt.Println("Your password has been cracked!")
+		return
+	}
+
+	fmt.Println("Your password has not been cracked! Good choice!")
 }
