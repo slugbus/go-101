@@ -18,6 +18,20 @@ func grabInput() string {
 	return text
 }
 
+func joinAll(tFields []string) string {
+	var sb strings.Builder
+
+	for _, field := range tFields {
+		// As per the doc, WriteString always
+		// returns a nil error. But
+		// go insists we "check" it.
+		_, err := sb.WriteString(field)
+		_ = err
+	}
+
+	return sb.String()
+}
+
 func main() {
 	// Init Seed
 	rand.Seed(time.Now().Unix())
@@ -26,14 +40,11 @@ func main() {
 		"These words can include your favorite band, snack, etc!",
 		"Please enter words with a space in between")
 
+	// Parse the fields from the user and join them.
 	fields := strings.Fields(grabInput())
-	passwd := ""
+	input := joinAll(fields)
 
-	for _, str := range fields {
-		passwd += str
-	}
-
-	sum := sha1.Sum([]byte(passwd))
+	sum := sha1.Sum([]byte(input))
 	values := strings.ToUpper(fmt.Sprintf("%x", sum))
 
 	// resp, err := http.Get(fmt.Sprintf("https://api.pwnedpasswords.com/range/%s", "C8FED"))
