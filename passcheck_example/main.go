@@ -5,6 +5,7 @@ import (
 	"crypto/sha1"
 	"fmt"
 	"io/ioutil"
+	"log"
 	"math/rand"
 	"net/http"
 	"os"
@@ -44,6 +45,31 @@ func sha1HashAsString(data []byte) string {
 	return strings.ToUpper(fmt.Sprintf("%x", hash))
 }
 
+func queryHaveIBeenPwned(query string) (string, error) {
+	url := fmt.Sprintf("https://api.pwnedpasswords.com/range/%s", query)
+	resp, err := http.Get(url)
+	// Check for 2 sources of error:
+	// 0) Error from err var.
+	// 1) Bad status code
+	if err != nil {
+		return "", fmt.Errorf("could not not hit api with query %q: %v", query, err)
+	}
+	if resp.StatusCode != http.StatusOK {
+		return "", fmt.Errorf("bad response from api with query %q: %d (%v)",
+			query,
+			resp.StatusCode,
+			http.StatusText(resp.StatusCode))
+	}
+	defer resp.Body.Close()
+
+	// Otherwise read the body and return it
+	bodyBytes, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return "", fmt.Errorf("could not read body response: %v", err)
+	}
+	return string(bodyBytes), nil
+}
+
 func main() {
 	// Init the seed.
 	rand.Seed(time.Now().Unix())
@@ -61,27 +87,14 @@ func main() {
 	punctuation := "!@#$%^&*(){}<>?."
 	input = insertMiddle(input, punctuation)
 
+	// Hash input.
 	hashedInput := sha1HashAsString([]byte(input))
 
-	// resp, err := http.Get(fmt.Sprintf("https://api.pwnedpasswords.com/range/%s", "C8FED"))
-	resp, err := http.Get(fmt.Sprintf("https://api.pwnedpasswords.com/range/%s", values[:5]))
+	// And queryHaveIBeenPwned
+	resp, err := queryHaveIBeenPwned(hashedInput[:5])
 	if err != nil {
-		panic(err)
+		log.Fatalln(err)
 	}
 
-	body, err := ioutil.ReadAll(resp.Body)
-	bodyStr := string(body)
-	reader2 := bufio.NewScanner(strings.NewReader(bodyStr))
-
-	for reader2.Scan() {
-		crackedPasswd := strings.Split(reader2.Text(), ":")[0]
-
-		if crackedPasswd[len(crackedPasswd)-10:] == values[len(values)-10:] {
-			fmt.Println("Your password has been cracked!")
-			os.Exit(1)
-		}
-
-	}
-
-	fmt.Println("Your password has not been cracked! Good choice!")
+	fmt.Println(resp)
 }
