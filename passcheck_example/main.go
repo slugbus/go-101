@@ -12,19 +12,21 @@ import (
 	"time"
 )
 
+func grabInput() string {
+	reader := bufio.NewReader(os.Stdin)
+	text, _ := reader.ReadString('\n')
+	return text
+}
+
 func main() {
 	// Init Seed
 	rand.Seed(time.Now().Unix())
 	// Ask for input
-	fmt.Println("Type in three uncommon words to use in your password. These words can", "include your favorite band, snack, etc! Please enter words with a space inbetween")
-	reader := bufio.NewReader(os.Stdin)
-	text, _ := reader.ReadString('\n')
-	fields := strings.Fields(text)
-	// punctuationStr := "!@#$%^&*(){}"
-	// punct := punctuationStr[rand.Intn(len(punctuationStr))]
+	fmt.Println("Type in three uncommon words to use in your password.",
+		"These words can include your favorite band, snack, etc!",
+		"Please enter words with a space in between")
 
-	// fields[0] = fields[0][:len(fields)/2] + string(punct) + fields[1][len(fields)/2:]
-
+	fields := strings.Fields(grabInput())
 	passwd := ""
 
 	for _, str := range fields {
