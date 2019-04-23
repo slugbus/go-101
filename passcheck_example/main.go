@@ -80,13 +80,13 @@ func queryHaveIBeenPwned(query string) (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("could not not hit api with query %q: %v", query, err)
 	}
+	defer resp.Body.Close()
 	if resp.StatusCode != http.StatusOK {
 		return "", fmt.Errorf("bad response from api with query %q: %d (%v)",
 			query,
 			resp.StatusCode,
 			http.StatusText(resp.StatusCode))
 	}
-	defer resp.Body.Close()
 
 	// Otherwise read the body and return it
 	bodyBytes, err := ioutil.ReadAll(resp.Body)
