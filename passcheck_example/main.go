@@ -114,18 +114,20 @@ func main() {
 	input = insertMiddle(input, punctuation)
 
 	// Print the password and a waiting message.
-	fmt.Println("\n"+"Your generated password:", input)
-	fmt.Println("Checking if its been cracked..." + "\n")
+	fmt.Println("\n"+"Your generated password is:", input+"\n")
+	fmt.Println("Checking if its been cracked...")
 
 	// Hash input.
 	hashedInput := sha1HashAsString([]byte(input))
 
 	// And queryHaveIBeenPwned
+	fmt.Println("Making query to HaveIBeenPwned. Hang tight...")
 	resp, err := queryHaveIBeenPwned(hashedInput[:5])
 	if err != nil {
 		log.Fatalln(err)
 	}
 
+	fmt.Println("Checking for pwnage..." + "\n")
 	pwned, err := beenPwned(hashedInput, resp)
 
 	if err != nil {
