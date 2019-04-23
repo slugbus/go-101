@@ -110,8 +110,12 @@ func main() {
 	input := joinAll(fields)
 
 	// Insert a random punctuation mark.
-	punctuation := "!@#$%^&*(){}<>?."
+	punctuation := `!@#$%^&*()_+-=[]\{}|;':",./<>?`
 	input = insertMiddle(input, punctuation)
+
+	// Print the password and a waiting message.
+	fmt.Println("\n"+"Your generated password:", input)
+	fmt.Println("Checking if its been cracked..." + "\n")
 
 	// Hash input.
 	hashedInput := sha1HashAsString([]byte(input))
@@ -129,7 +133,7 @@ func main() {
 	}
 
 	if pwned {
-		fmt.Println("Your password has been cracked!")
+		fmt.Println("Oh no! Your generated password has been cracked!")
 		return
 	}
 
