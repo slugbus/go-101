@@ -32,9 +32,17 @@ func joinAll(tFields []string) string {
 	return sb.String()
 }
 
+func insertMiddle(s, set string) string {
+	// Chose a random rune from the set.
+	char := set[rand.Intn(len(s))]
+	// Insert and return the random char into the middle of the string.
+	return s[:len(s)/2] + string(char) + s[len(s)/2:]
+}
+
 func main() {
-	// Init Seed
+	// Init the seed.
 	rand.Seed(time.Now().Unix())
+
 	// Ask for input
 	fmt.Println("Type in three uncommon words to use in your password.",
 		"These words can include your favorite band, snack, etc!",
@@ -43,6 +51,10 @@ func main() {
 	// Parse the fields from the user and join them.
 	fields := strings.Fields(grabInput())
 	input := joinAll(fields)
+
+	// Insert a random punctuation mark.
+	punctuation := "!@#$%^&*(){}<>?."
+	input = insertMiddle(input, punctuation)
 
 	sum := sha1.Sum([]byte(input))
 	values := strings.ToUpper(fmt.Sprintf("%x", sum))
