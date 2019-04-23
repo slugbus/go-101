@@ -39,6 +39,11 @@ func insertMiddle(s, set string) string {
 	return s[:len(s)/2] + string(char) + s[len(s)/2:]
 }
 
+func sha1HashAsString(data []byte) string {
+	hash := sha1.Sum(data)
+	return strings.ToUpper(fmt.Sprintf("%x", hash))
+}
+
 func main() {
 	// Init the seed.
 	rand.Seed(time.Now().Unix())
@@ -56,8 +61,7 @@ func main() {
 	punctuation := "!@#$%^&*(){}<>?."
 	input = insertMiddle(input, punctuation)
 
-	sum := sha1.Sum([]byte(input))
-	values := strings.ToUpper(fmt.Sprintf("%x", sum))
+	hashedInput := sha1HashAsString([]byte(input))
 
 	// resp, err := http.Get(fmt.Sprintf("https://api.pwnedpasswords.com/range/%s", "C8FED"))
 	resp, err := http.Get(fmt.Sprintf("https://api.pwnedpasswords.com/range/%s", values[:5]))
