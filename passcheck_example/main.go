@@ -5,6 +5,7 @@ import (
 	"crypto/sha1"
 	"fmt"
 	"io/ioutil"
+	"log"
 	"math/rand"
 	"net/http"
 	"os"
@@ -12,46 +13,128 @@ import (
 	"time"
 )
 
-func main() {
-	// Init Seed
-	rand.Seed(time.Now().Unix())
-	// Ask for input
-	fmt.Println("Type in three uncommon words to use in your password. These words can", "include your favorite band, snack, etc! Please enter words with a space inbetween")
+func grabInput() string {
 	reader := bufio.NewReader(os.Stdin)
 	text, _ := reader.ReadString('\n')
-	fields := strings.Fields(text)
-	// punctuationStr := "!@#$%^&*(){}"
-	// punct := punctuationStr[rand.Intn(len(punctuationStr))]
+	return text
+}
 
-	// fields[0] = fields[0][:len(fields)/2] + string(punct) + fields[1][len(fields)/2:]
+func joinAll(tFields []string) string {
+	var sb strings.Builder
 
-	passwd := ""
-
-	for _, str := range fields {
-		passwd += str
+	for _, field := range tFields {
+		// As per the doc, WriteString always
+		// returns a nil error. But
+		// go insists we "check" it.
+		_, err := sb.WriteString(field)
+		_ = err
 	}
 
-	sum := sha1.Sum([]byte(passwd))
-	values := strings.ToUpper(fmt.Sprintf("%x", sum))
+	return sb.String()
+}
 
-	// resp, err := http.Get(fmt.Sprintf("https://api.pwnedpasswords.com/range/%s", "C8FED"))
-	resp, err := http.Get(fmt.Sprintf("https://api.pwnedpasswords.com/range/%s", values[:5]))
-	if err != nil {
-		panic(err)
-	}
+func beenPwned(hashedPassword, haveIBeenPwnedResp string) (bool, error) {
+	// Create a scanner from the response.
+	scanner := bufio.NewScanner(strings.NewReader(haveIBeenPwnedResp))
 
-	body, err := ioutil.ReadAll(resp.Body)
-	bodyStr := string(body)
-	reader2 := bufio.NewScanner(strings.NewReader(bodyStr))
+	// Scan the response.
+	for scanner.Scan() {
+		currentHash := scanner.Text()
+		// the api returns the hash - (first five chars)
+		// since a standard hash is 40 chars this means
+		// that the hash is the fist 35 characters.
+		currentHash = currentHash[:35]
 
-	for reader2.Scan() {
-		crackedPasswd := strings.Split(reader2.Text(), ":")[0]
-
-		if crackedPasswd[len(crackedPasswd)-10:] == values[len(values)-10:] {
-			fmt.Println("Your password has been cracked!")
-			os.Exit(1)
+		// Check to see if the first 10 chars are the same
+		if hashedPassword[len(hashedPassword)-10:] == currentHash[len(currentHash)-10:] {
+			return true, nil
 		}
+	}
 
+	// Check for errors
+	if err := scanner.Err(); err != nil {
+		return false, fmt.Errorf("could not scan text: %v", err)
+	}
+
+	return false, nil
+}
+
+func insertMiddle(s, set string) string {
+	// Chose a random rune from the set.
+	char := set[rand.Intn(len(s))]
+	// Insert and return the random char into the middle of the string.
+	return s[:len(s)/2] + string(char) + s[len(s)/2:]
+}
+
+func sha1HashAsString(data []byte) string {
+	hash := sha1.Sum(data)
+	return strings.ToUpper(fmt.Sprintf("%x", hash))
+}
+
+func queryHaveIBeenPwned(query string) (string, error) {
+	url := fmt.Sprintf("https://api.pwnedpasswords.com/range/%s", query)
+	resp, err := http.Get(url)
+	// Check for 2 sources of error:
+	// 0) Error from err var.
+	// 1) Bad status code
+	if err != nil {
+		return "", fmt.Errorf("could not not hit api with query %q: %v", query, err)
+	}
+	if resp.StatusCode != http.StatusOK {
+		return "", fmt.Errorf("bad response from api with query %q: %d (%v)",
+			query,
+			resp.StatusCode,
+			http.StatusText(resp.StatusCode))
+	}
+	defer resp.Body.Close()
+
+	// Otherwise read the body and return it
+	bodyBytes, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return "", fmt.Errorf("could not read body response: %v", err)
+	}
+	return string(bodyBytes), nil
+}
+
+func main() {
+	// Init the seed.
+	rand.Seed(time.Now().Unix())
+
+	// Ask for input
+	fmt.Println("Type in words to use in your password.",
+		"These words can include your favorite band, snack, etc!",
+		"Please enter words with a space in between"+"\n")
+
+	// Parse the fields from the user and join them.
+	fields := strings.Fields(grabInput())
+	input := joinAll(fields)
+
+	// Insert a random punctuation mark.
+	punctuation := `!@#$%^&*()_+-=[]\{}|;':",./<>?`
+	input = insertMiddle(input, punctuation)
+
+	// Print the password and a waiting message.
+	fmt.Println("\n"+"Your generated password:", input)
+	fmt.Println("Checking if its been cracked..." + "\n")
+
+	// Hash input.
+	hashedInput := sha1HashAsString([]byte(input))
+
+	// And queryHaveIBeenPwned
+	resp, err := queryHaveIBeenPwned(hashedInput[:5])
+	if err != nil {
+		log.Fatalln(err)
+	}
+
+	pwned, err := beenPwned(hashedInput, resp)
+
+	if err != nil {
+		log.Fatalln(err)
+	}
+
+	if pwned {
+		fmt.Println("Oh no! Your generated password has been cracked!")
+		return
 	}
 
 	fmt.Println("Your password has not been cracked! Good choice!")
