@@ -1,0 +1,3 @@
+[submodule "passcheck_example/python-equivalent"]
+	path = passcheck_example/python-equivalent
+	url = https://github.com/JustynDuthler/PassCheck
