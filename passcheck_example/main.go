@@ -101,9 +101,9 @@ func main() {
 	rand.Seed(time.Now().Unix())
 
 	// Ask for input
-	fmt.Println("Type in three uncommon words to use in your password.",
+	fmt.Println("Type in words to use in your password.",
 		"These words can include your favorite band, snack, etc!",
-		"Please enter words with a space in between")
+		"Please enter words with a space in between"+"\n")
 
 	// Parse the fields from the user and join them.
 	fields := strings.Fields(grabInput())
